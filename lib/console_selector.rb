@@ -40,6 +40,7 @@ module Console
         ])
       set_correct_keys ["\r", "\n"]
       set_interrupt_keys ["\u0003"]
+      set_number_keys ("1".."9").to_a
     end
 
     def set_control_keys(up_keys, down_keys)
@@ -52,6 +53,10 @@ module Console
 
     def set_interrupt_keys(keys)
       @interrupt_keys = keys
+    end
+
+    def set_number_keys(keys)
+      @number_keys = keys
     end
 
     def self.run(choices, multi: false, indent: 0)
@@ -88,11 +93,13 @@ module Console
         IO.console.noecho do |io|
           loop do
             reprint.call
-            case Keys.get_key(io)
+            case key = Keys.get_key(io)
             when *@control_keys[0]
               dec_index
             when *@control_keys[1]
               inc_index
+            when *@number_keys
+              set_index_or_do_nothing(key.to_i)
             when *@correct_keys
               break
             when *@interrupt_keys
@@ -110,10 +117,13 @@ module Console
       @index
     end
     def inc_index
-      @index = [@choices.size, @index + 1].min
+      set_index_or_do_nothing(@index + 1)
     end
     def dec_index
-      @index = [1, @index - 1].max
+      set_index_or_do_nothing(@index - 1)
+    end
+    def set_index_or_do_nothing(new_index)
+      @index = new_index if (1..@choices.size).include?(new_index)
     end
     def current_choice
       @choices[@index - 1]
